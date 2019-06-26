@@ -1,17 +1,36 @@
 #include <SFML/Graphics.hpp>
 #include "Header1.h"
 
+sf::Vector2f position(80, 425);
+sf::Vector2f velocity(0, 0);
+
+float gravity = .45f;
+bool gravitystate = false;
+
+float RandomFloat(float a, float b) {
+	float random = ((float)rand()) / (float)RAND_MAX;
+	float diff = b - a;
+	float r = random * diff;
+	return a + r;
+}
+
 int main() {
-	sf::RenderWindow window(sf::VideoMode(670, 450), "Beaver Game");
+	sf::RenderWindow window(sf::VideoMode(670, 500), "Beaver Game");
 
 	sf::Texture backgroundTex;
 	backgroundTex.loadFromFile("Textures/forest.png");
+	sf::Texture backgroundTex2;
+	backgroundTex2.loadFromFile("Textures/forest2.png");
+	sf::Texture backgroundTex3;
+	backgroundTex3.loadFromFile("Textures/forest3.png");
 	sf::Texture walkingTex;
 	walkingTex.loadFromFile("Textures/BeaverWalking.png");
 	sf::Texture idleTex;
 	idleTex.loadFromFile("Textures/BeaverIdle.png");
 	sf::Texture spikeTex;
 	spikeTex.loadFromFile("Textures/YellowSpike.png");
+	sf::Texture topSpikeTex;
+	topSpikeTex.loadFromFile("Textures/YellowSpike.png");
 
 	sf::IntRect rect[2];
 	rect[0] = sf::IntRect(0, 0, 36, 24);
@@ -19,12 +38,26 @@ int main() {
 
 	sf::Sprite backgroundSprite;
 	backgroundSprite.setTexture(backgroundTex);
+	sf::Sprite backgroundSprite2;
+	backgroundSprite2.setTexture(backgroundTex2);
+	sf::Sprite backgroundSprite3;
+	backgroundSprite3.setTexture(backgroundTex3);
+
+	backgroundSprite.setPosition(0,0);
+	backgroundSprite2.setPosition(670,0);
+	backgroundSprite3.setPosition(670*2,0);
 
 	sf::Sprite obstacleSprite;
 	obstacleSprite.setTexture(spikeTex);
-	obstacleSprite.setOrigin(32,32);
+	obstacleSprite.setOrigin(32, 32);
 	obstacleSprite.setScale(3, 3);
 	obstacleSprite.setPosition(480, 467);
+
+	sf::Sprite topObstacleSprite;
+	topObstacleSprite.setTexture(topSpikeTex);
+	topObstacleSprite.setOrigin(32, 32);
+	topObstacleSprite.setScale(3, -3);
+	topObstacleSprite.setPosition(650, -17);
 
 	sf::Sprite playerSprite;
 	//playerSprite.setTexture(walkingTex);
@@ -32,11 +65,19 @@ int main() {
 	playerSprite.setTexture(idleTex);
 	playerSprite.setOrigin(24, 18);
 	playerSprite.setScale(2, 2);
-	playerSprite.setPosition(80, 425);
+	playerSprite.setPosition(position);
 
-	sf::Clock clock;
+	float everythingPos = -.1;
+
+	float randomTime = RandomFloat(.5, 2);
+
+	sf::Clock clock, difClock, obstacleClock, topObstacleClock;
 	int imgCount = 0;
+
 	float timer = 0;
+	float spriteTimer = 0;
+	float obstacleTimer = 0;
+	float topObstacleTimer = 0;
 
 	bool movingUp = false;
 	bool movingDown = false;
@@ -45,7 +86,8 @@ int main() {
 
 	bool facingLeft = true;
 
-	
+	bool beaverInvert = false;
+
 
 	while (window.isOpen()) {
 		sf::Event event;
@@ -55,17 +97,11 @@ int main() {
 				window.close();
 
 			if (event.type == sf::Event::KeyPressed) {
-				if (event.key.code == sf::Keyboard::Space) 
+				if (event.key.code == sf::Keyboard::Space)
 				{
-					if () 
-						//^Make it so if the player is above a certain level, the sprite will jump down.
-					{
-						playerSprite.scale(1, -1);
-					}
-					else 
-					{
-						playerSprite.scale(1, -1);
-					}
+					gravitystate = !gravitystate;
+					gravity = -gravity;
+					playerSprite.scale(1, -1);
 				}
 
 				if (event.key.code == sf::Keyboard::A) {
@@ -83,7 +119,7 @@ int main() {
 						playerSprite.scale(-1, 1);
 						facingLeft = false;
 					}
-					
+
 				}
 			}
 
@@ -91,20 +127,20 @@ int main() {
 				if (event.key.code == sf::Keyboard::Space) {
 					movingUp = false;
 				}
-				
+
 				if (event.key.code == sf::Keyboard::A) {
 					movingLeft = false;
 				}
 				if (event.key.code == sf::Keyboard::D) {
 					movingRight = false;
 
-					
+
 				}
 			}
 		}
 
 		timer = clock.getElapsedTime().asSeconds();
-		if (timer > .2f) {
+		if (timer > .3f) {
 			if (imgCount < 1)
 				imgCount++;
 			else
@@ -112,40 +148,113 @@ int main() {
 			clock.restart();
 		}
 
-		
+		velocity.x = 0;
 
-		sf::Vector2f movement(0, 0);
-
-		if (movingUp)
-			movement.y -= 0;
-		if (movingDown)
-			movement.y += 0;
 		if (movingRight)
-			movement.x += .25f;
+			velocity.x += .25f;
 		if (movingLeft)
-			movement.x -= .25f;
+			velocity.x -= .25f;
 
-		if (movingUp || movingDown || movingLeft || movingRight) {
+		velocity.y += gravity;
+
+		if (position.y >= 425) {
+			position.y = 425;
+			if (velocity.y > 0)
+				velocity.y = 0;
+		}
+
+		if (position.y <= 25) {
+			position.y = 25;
+			if (velocity.y < 0)
+				velocity.y = 0;
+		}
+
+
+		position += velocity;
+
 			playerSprite.setTexture(walkingTex);
 			playerSprite.setTextureRect(rect[imgCount]);
-		}
-		else {
-			playerSprite.setTexture(idleTex);
-			playerSprite.setTextureRect(rect[0]);
+
+		if
+		(playerSprite.getGlobalBounds().intersects(obstacleSprite.getGlobalBounds()))
+		{
+			playerSprite.setPosition(80, 425);
+			position.x = 80;
+			position.y = 425;
+			gravity = false;
+			playerSprite.scale(1, -1);
 		}
 
 		if
-		(playerSprite.getGlobalBounds().intersects(obstacleSprite.getGlobalBounds())) 
+		(playerSprite.getGlobalBounds().intersects(topObstacleSprite.getGlobalBounds()))
 		{
 			playerSprite.setPosition(80, 425);
+			position.x = 80;
+			position.y = 425;
+			gravity = false;
+			playerSprite.scale(1, -1);
 		}
 
-		playerSprite.move(movement);
+		backgroundSprite.move(everythingPos,0);
+		backgroundSprite2.move(everythingPos, 0);
+		backgroundSprite3.move(everythingPos, 0);
+
+		spriteTimer = difClock.getElapsedTime().asSeconds();
+		if (spriteTimer > 2) 
+		{
+			difClock.restart();
+			everythingPos -= .025;
+		}
+
+		//get time as seconds
+		//if (time > the random time AND obstbable is past the screen
+		// move it to the other side
+		//reset clock
+		//randomTime = RandomFloat(.5, 2);
+		obstacleTimer = obstacleClock.getElapsedTime().asSeconds();
+		if (obstacleTimer > randomTime && obstacleSprite.getGlobalBounds().left < 0 ) {
+			obstacleSprite.setPosition(900, 467);
+			obstacleClock.restart();
+			randomTime = RandomFloat(.5, 2);
+		}
+
+		topObstacleTimer = topObstacleClock.getElapsedTime().asSeconds();
+		if (topObstacleTimer > randomTime && topObstacleSprite.getGlobalBounds().left < 0) {
+			topObstacleSprite.setPosition(900, 67);
+			topObstacleClock.restart();
+			randomTime = RandomFloat(.5, 2);
+		}
+
+		if(backgroundSprite.getPosition().x < -670) 
+		{
+			backgroundSprite.move(670 * 3, 0);
+		}
+		if (backgroundSprite2.getPosition().x < -670)
+		{
+			backgroundSprite2.move(670 * 3, 0);
+		}
+		if (backgroundSprite3.getPosition().x < -670)
+		{
+			backgroundSprite3.move(670 * 3, 0);
+		}
+
+		obstacleSprite.move(everythingPos, 0);
+
+
+
+		//playerSprite.setPosition(position);
+		playerSprite.move(velocity);
 		window.clear();
 		window.draw(backgroundSprite);
+		window.draw(backgroundSprite2);
+		window.draw(backgroundSprite3);
 		window.draw(playerSprite);
 		window.draw(obstacleSprite);
+		window.draw(topObstacleSprite);
 		window.display();
-		
+
 	}
 }
+
+
+
